@@ -346,14 +346,6 @@
                 <div id="solutionSteps"></div>
             </div>
             
-            <div class="solution" id="exportResult" style="display:none;">
-                <h3 id="exportTitle">Exported Puzzle Code:</h3>
-                <textarea id="exportCode" readonly style="width: 100%; height: 200px; font-family: monospace; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical;"></textarea>
-                <div style="margin-top: 10px;">
-                    <button id="btnCopy" onclick="copyExportCode()">Copy Code</button>
-                    <button id="btnClose" onclick="closeExportResult()">Close</button>
-                </div>
-            </div>
         </div>
         
         <div class="right-sidebar">
@@ -374,26 +366,19 @@
         const translations = {
             en: {
                 title: 'Color Sort Solver',
-                btnRandom: 'Random',
-                btnSolve: 'Solve',
+                btnRandom: 'Generate Random',
+                btnSolve: 'AutoSolve',
                 btnReset: 'Reset',
                 btnClear: 'Clear All',
-                btnExport: 'Export',
+                btnExport: 'Save Current',
                 btnPrev: '← Prev',
                 btnNext: 'Next →',
                 progressText: 'Calculating solution...',
                 progressState: 'States tried:',
                 solutionTitle: 'Solution:',
-                exportTitle: 'Exported Puzzle Code:',
-                btnCopy: 'Copy Code',
-                btnClose: 'Close',
                 statsSteps: 'Steps:',
                 statsTime: 'Time:',
                 statsNoSolution: 'No solution found or solution too complex',
-                toastNoTubes: 'No full tubes to export (need 4 colors)',
-                toastIncomplete: 'Export failed: incomplete tube data',
-                toastCopied: 'Puzzle code copied to clipboard! Please open HTML file and replace inputColors1 section',
-                toastCopyFailed: 'Copy failed, please copy manually',
                 toastMaxTubes: 'Maximum 8 tubes per row!',
                 toastMinTubes: 'At least 3 tubes must be kept!',
                 toastSelectPosition: 'Please select a tube position first',
@@ -412,22 +397,15 @@
                 btnSolve: '求解',
                 btnReset: '重置',
                 btnClear: '清空所有',
-                btnExport: '导出题目',
+                btnExport: '保存题目',
                 btnPrev: '← 上一步',
                 btnNext: '下一步 →',
                 progressText: '正在计算解决方案...',
                 progressState: '已尝试状态:',
                 solutionTitle: '解决方案:',
-                exportTitle: '导出的题目代码:',
-                btnCopy: '复制代码',
-                btnClose: '关闭',
                 statsSteps: '解法步数:',
                 statsTime: '时间:',
                 statsNoSolution: '未找到解决方案或解决方案太复杂',
-                toastNoTubes: '当前没有满的试管可导出（需要4个颜色）',
-                toastIncomplete: '导出失败：试管数据不完整',
-                toastCopied: '题目代码已复制到剪贴板！请打开HTML文件替换inputColors1部分',
-                toastCopyFailed: '复制失败，请手动复制',
                 toastMaxTubes: '每行最多只能有8个试管！',
                 toastMinTubes: '至少需要保留3个试管！',
                 toastSelectPosition: '请先选择一个试管位置',
@@ -473,12 +451,6 @@
             // 更新解决方案标题
             document.getElementById('solutionTitle').textContent = t.solutionTitle;
             
-            // 更新导出标题
-            document.getElementById('exportTitle').textContent = t.exportTitle;
-            
-            // 更新导出按钮
-            document.getElementById('btnCopy').textContent = t.btnCopy;
-            document.getElementById('btnClose').textContent = t.btnClose;
             
             // 更新统计信息（如果已显示）
             const statsContent = document.getElementById('statsContent');
@@ -667,7 +639,7 @@
         }
         
         // 初始化游戏
-        function initGame(numTubesPerRow = 5, numRows = 3) {
+        function initGame() {
             tubes = [];
             // 固定3行：第一行5个，第二行6个，第三行5个
             const fixedRowSizes = [5, 6, 5];
@@ -1219,122 +1191,87 @@
             renderBoard();
         }
         
-        // 导出当前题目（复制到剪贴板）
-        function exportPuzzle() {
-            // 获取所有满的试管（4个颜色）
-            const fullTubes = [];
-            for (let i = 0; i < tubes.length; i++) {
-                if (tubes[i].length === 4) {
-                    fullTubes.push(tubes[i]);
+        // Cookie操作辅助函数
+        function setCookie(name, value, days = 365) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+            document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/`;
+        }
+        
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    return decodeURIComponent(c.substring(nameEQ.length, c.length));
                 }
             }
+            return null;
+        }
+        
+        // 导出当前题目（保存到cookie）
+        function exportPuzzle() {
+            // 保存当前题目数据到cookie
+            const puzzleData = {
+                tubes: tubes,
+                rowSizes: rowSizes
+            };
             
-            if (fullTubes.length === 0) {
-                showToast(translations[currentLang].toastNoTubes);
-                return;
+            try {
+                const dataString = JSON.stringify(puzzleData);
+                setCookie('colorSortPuzzle', dataString);
+                const t = translations[currentLang];
+                showToast(currentLang === 'zh' ? '题目已保存到Cookie！' : 'Puzzle saved to Cookie!');
+            } catch (err) {
+                console.error('保存失败:', err);
+                const t = translations[currentLang];
+                showToast(currentLang === 'zh' ? '保存失败，请重试' : 'Save failed, please try again');
+            }
+        }
+        
+        // 从cookie加载题目
+        function loadPuzzleFromCookie() {
+            const cookieData = getCookie('colorSortPuzzle');
+            if (!cookieData) {
+                return false;
             }
             
-            // 将每个试管的颜色索引转换为颜色名称
-            let exportText = '';
-            for (let i = 0; i < fullTubes.length; i++) {
-                const tube = fullTubes[i];
-                const colorNames = [];
+            try {
+                const puzzleData = JSON.parse(cookieData);
                 
-                // 从底部到顶部（数组索引0到3）
-                for (let j = 0; j < 4; j++) {
-                    if (tube[j] !== undefined && tube[j] >= 0 && tube[j] < colors.length) {
-                        colorNames.push(colors[tube[j]].name);
+                // 验证数据格式
+                if (!puzzleData.tubes || !Array.isArray(puzzleData.tubes)) {
+                    return false;
+                }
+                
+                // 恢复题目数据
+                tubes = puzzleData.tubes.map(tube => Array.isArray(tube) ? [...tube] : []);
+                
+                // 恢复行大小配置
+                if (puzzleData.rowSizes && Array.isArray(puzzleData.rowSizes)) {
+                    rowSizes = [...puzzleData.rowSizes];
+                } else {
+                    // 如果没有rowSizes，使用默认配置
+                    const totalTubes = tubes.length;
+                    if (totalTubes <= 5) {
+                        rowSizes = [totalTubes, 0, 0];
+                    } else if (totalTubes <= 11) {
+                        rowSizes = [5, totalTubes - 5, 0];
                     } else {
-                        showToast(translations[currentLang].toastIncomplete);
-                        return;
+                        rowSizes = [5, 6, totalTubes - 11];
                     }
                 }
                 
-                // 每行4个颜色，用空格分隔
-                exportText += colorNames.join(' ') + '\n';
-            }
-            
-            // 格式化为inputColors1的格式
-            const newInputColors1 = `            const inputColors1 = \`
-${exportText.trim()}
-\`;`;
-            
-            // 复制到剪贴板
-            copyToClipboard(newInputColors1);
-        }
-        
-        // 复制文本到剪贴板
-        function copyToClipboard(text) {
-            // 优先使用 Clipboard API
-            const t = translations[currentLang];
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showToast(t.toastCopied);
-                }).catch(err => {
-                    console.error('复制失败:', err);
-                    // 降级到execCommand
-                    fallbackCopyToClipboard(text);
-                });
-            } else {
-                // 降级到execCommand
-                fallbackCopyToClipboard(text);
-            }
-        }
-        
-        // 降级复制方法（使用execCommand）
-        function fallbackCopyToClipboard(text) {
-            const textArea = document.createElement('textarea');
-            textArea.value = text;
-            textArea.style.position = 'fixed';
-            textArea.style.left = '-999999px';
-            textArea.style.top = '-999999px';
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            
-            const t = translations[currentLang];
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    showToast(t.toastCopied);
-                } else {
-                    showToast(t.toastCopyFailed);
-                }
+                renderBoard();
+                renderColorPalette();
+                updateColorCounts();
+                return true;
             } catch (err) {
-                console.error('复制失败:', err);
-                showToast(t.toastCopyFailed);
-            } finally {
-                document.body.removeChild(textArea);
+                console.error('加载Cookie数据失败:', err);
+                return false;
             }
-        }
-        
-        // 复制导出代码到剪贴板
-        function copyExportCode() {
-            const exportCodeEl = document.getElementById('exportCode');
-            exportCodeEl.select();
-            exportCodeEl.setSelectionRange(0, 99999); // 兼容移动设备
-            
-            const t = translations[currentLang];
-            try {
-                document.execCommand('copy');
-                showToast(t.toastCopied);
-            } catch (err) {
-                // 如果execCommand失败，尝试使用Clipboard API
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(exportCodeEl.value).then(() => {
-                        showToast(t.toastCopied);
-                    }).catch(() => {
-                        showToast(t.toastCopyFailed);
-                    });
-                } else {
-                    showToast(t.toastCopyFailed);
-                }
-            }
-        }
-        
-        // 关闭导出结果
-        function closeExportResult() {
-            document.getElementById('exportResult').style.display = 'none';
         }
         
         // 重置游戏
@@ -1360,26 +1297,6 @@ ${exportText.trim()}
             
             // 重新渲染以显示新的选中状态
             renderBoard();
-        }
-        
-        // 检查游戏是否完成
-        function isSolved() {
-            for (let tube of tubes) {
-                if (tube.length === 0) continue;
-                
-                // 检查试管是否只有一种颜色且已满
-                const firstColor = tube[0];
-                for (let color of tube) {
-                    if (color !== firstColor) return false;
-                }
-                if (tube.length !== 4) return false;
-            }
-            return true;
-        }
-        
-        // 获取游戏状态的字符串表示（用于去重）
-        function getStateKey() {
-            return tubes.map(tube => tube.join(',')).join(';');
         }
         
         // 验证题目是否完整
@@ -1761,9 +1678,6 @@ ${exportText.trim()}
                     tubes = JSON.parse(JSON.stringify(originalTubesState));
                     renderBoard();
                     
-                    // 不显示解决方案文本（信息已通过前进后退按钮展示）
-                    // displaySolution(solutionSteps);
-                    
                     // 显示前进后退按钮
                     document.getElementById('prevStepBtn').style.display = 'inline-block';
                     document.getElementById('nextStepBtn').style.display = 'inline-block';
@@ -1827,21 +1741,17 @@ ${exportText.trim()}
             document.getElementById('nextStepBtn').disabled = currentStepIndex >= solutionSteps.length - 1;
         }
         
-        // 显示解决方案（已废弃，信息通过前进后退按钮展示）
-        function displaySolution(moves) {
-            // 不再显示解决方案文本列表
-            // 信息已通过前进后退按钮在界面上展示
-            const solutionEl = document.getElementById('solution');
-            solutionEl.style.display = 'none';
-        }
-        
         // 初始化游戏
         window.onload = function() {
             // 初始化语言（默认英语）
             updateLanguage();
             
-            // 加载默认题目
-            loadDefaultPuzzle();
+            // 先尝试从cookie加载题目，如果没有则加载默认题目
+            const loadedFromCookie = loadPuzzleFromCookie();
+            if (!loadedFromCookie) {
+                // 如果没有cookie或加载失败，加载默认题目
+                loadDefaultPuzzle();
+            }
             
             // 初始化前进后退按钮状态
             document.getElementById('prevStepBtn').disabled = true;
