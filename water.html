@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>颜色排序解题器</title>
     <style>
-        :root {
-            --bubble-height: 35px; /* 每个颜色块的高度，修改此值即可调整所有颜色块高度和试管总高度 */
-        }
         body {
             font-family: Arial, sans-serif;
             max-width: 100%;
@@ -22,75 +19,91 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin: 20px auto;
-            max-width: 95%;
-            width: 100%;
+            margin: 20px 20px 20px 20px;
+            max-width: calc(100% - 40px);
+            width: calc(100% - 40px);
+            min-width: 1200px;
             box-sizing: border-box;
             height: calc(100vh - 40px);
             overflow: hidden;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             gap: 20px;
         }
+        .content-row {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            height: 100%;
+        }
         .left-sidebar {
-            width: 200px;
+            width: 120px;
             flex-shrink: 0;
-            overflow-y: auto;
+            overflow: hidden;
             padding-right: 10px;
+            height: 100%;
+            box-sizing: border-box;
         }
         .main-content {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            min-width: 0;
+            min-width: 200px;
             overflow: hidden;
-        }
-        .right-sidebar {
-            width: 250px;
-            flex-shrink: 0;
-            overflow-y: auto;
-            padding-left: 10px;
+            box-sizing: border-box;
+            height: 100%;
+            width: fit-content;
         }
         .board {
-            margin: 20px 0 0 0;
-            overflow-y: auto;
-            overflow-x: visible;
-            width: 100%;
+            margin: 0;
+            overflow: hidden;
+            width: fit-content;
             display: flex;
             flex-direction: column;
             align-items: center;
             flex: 1;
             min-height: 0;
-            padding-bottom: 10px;
+            padding: 0;
+            box-sizing: border-box;
+            gap: 0;
         }
         .tube-row {
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            justify-content: flex-start;
+            align-items: stretch;
             gap: 15px;
-            margin: 1px auto;
-            padding: 10px;
+            margin: 0;
+            padding: 10px 5px 10px 10px;
             background-color: #f9f9f9;
             border-radius: 8px;
-            width: 100%;
-            max-width: 100%;
+            width: fit-content;
             box-sizing: border-box;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
         }
         .tube {
             display: flex;
             flex-direction: column;
             width: 60px;
+            min-width: 50px;
+            flex-shrink: 0;
             border: 2px solid #333;
             border-radius: 0 0 10px 10px;
             background: #f0f0f0;
             padding: 5px;
             position: relative;
             transition: transform 0.2s;
+            box-sizing: border-box;
+            height: 100%;
         }
         .tube-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            align-items: center;
             margin-bottom: 5px;
         }
         .delete-btn {
@@ -109,12 +122,16 @@
         .tube-content {
             display: flex;
             flex-direction: column-reverse;
-            height: calc(var(--bubble-height) * 4); /* 自动计算：4个颜色块的高度 */
+            flex: 1;
+            min-height: 0;
             gap: 0; /* 移除缝隙 */
+            justify-content: flex-end;
         }
         .bubble {
-            width: 50px;
-            height: var(--bubble-height); /* 使用CSS变量，便于统一调整 */
+            width: 60px;
+            max-width: calc(100%);
+            flex: 1;
+            min-height: 0;
             border-radius: 4px; /* 轻微圆角 */
             margin: 0 auto;
             border: 1px solid #999;
@@ -124,15 +141,19 @@
             justify-content: center;
             font-size: 10px;
             color: rgba(0,0,0,0.5);
+            box-sizing: border-box;
         }
         h1 {
-            margin: 0 0 20px 0;
+            margin: 0 auto;
             font-size: 24px;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
+            flex-shrink: 0;
+            width: fit-content;
+            max-width: 251px;
         }
         .lang-switch {
             font-size: 14px;
@@ -149,9 +170,18 @@
         .controls {
             display: flex;
             flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
             gap: 10px;
-            margin: 10px 0;
+            margin: 0;
             flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .controls-left {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         button {
             padding: 10px 15px;
@@ -184,30 +214,41 @@
             background: #FF9800;
             color: white;
             border: none;
-            border-radius: 5px;
-            padding: 8px 12px;
+            border-radius: 50%;
+            padding: 0;
             cursor: pointer;
             margin-left: 10px;
+            width: 30px;
             height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+            align-self: center;
         }
         .add-tube-btn:hover {
             background: #F57C00;
         }
         .color-palette {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin: 0 0 20px 0;
+            margin: 0;
             padding: 15px;
             background: #e9ecef;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             width: 100%;
             box-sizing: border-box;
+            overflow: visible;
         }
         .color-btn {
-            width: 40px;
-            height: 40px;
+            width: 100%;
+            max-width: 80px;
+            aspect-ratio: 1;
+            height: auto;
             border-radius: 50%;
             border: 2px solid #333;
             cursor: pointer;
@@ -219,6 +260,7 @@
             color: white;
             text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
             position: relative;
+            box-sizing: border-box;
         }
         .color-btn .color-name {
             font-size: 12px;
@@ -241,37 +283,17 @@
             box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
         }
         .solution {
-            margin-top: 20px;
+            margin: 0;
             padding: 15px;
             background: #e8f5e8;
             border-radius: 5px;
             display: none;
-        }
-        .move {
-            margin: 5px 0;
-            padding: 5px;
-            background: #d4edda;
-            border-radius: 3px;
+            flex-shrink: 0;
         }
         .progress {
-            margin: 10px 0;
-            display: none;
-        }
-        .stats {
             margin: 0;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 5px;
-            position: sticky;
-            top: 0;
-        }
-        .row-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: left;
-            color: #333;
-            width: 100%;
-            padding-left: 5px;
+            display: none;
+            flex-shrink: 0;
         }
         .toast {
             position: fixed;
@@ -306,23 +328,32 @@
                 transform: translateX(0);
             }
         }
+        
+        /* 响应式设计 - 中等屏幕 */
+        @media (max-width: 1200px) {
+            .left-sidebar {
+                width: 120px;
+            }
+            .tube {
+                width: 55px;
+                min-width: 48px;
+            }
+            .bubble {
+                width: 45px;
+            }
+        }
+        
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="left-sidebar">
-            <div class="color-palette" id="colorPalette">
-                <!-- 颜色调色板将在这里生成 -->
-            </div>
-        </div>
+        <h1>
+            <span id="titleText">Color Sort Solver</span>
+            <span class="lang-switch" id="langSwitch" onclick="toggleLanguage()">ZH/EN</span>
+        </h1>
         
-        <div class="main-content">
-            <h1>
-                <span id="titleText">Color Sort Solver</span>
-                <span class="lang-switch" id="langSwitch" onclick="toggleLanguage()">ZH/EN</span>
-            </h1>
-            
-            <div class="controls">
+        <div class="controls">
+            <div class="controls-left">
                 <button id="btnRandom" onclick="generateRandomPuzzle()">Random</button>
                 <button id="btnSolve" onclick="solvePuzzle()">Solve</button>
                 <button id="btnReset" onclick="resetBoard()">Reset</button>
@@ -331,26 +362,29 @@
                 <button id="prevStepBtn" onclick="prevStep()" style="display:none;">← Prev</button>
                 <button id="nextStepBtn" onclick="nextStep()" style="display:none;">Next →</button>
             </div>
-            
-            <div class="board" id="board">
-                <!-- 游戏板将在这里生成 -->
-            </div>
-            
-            <div class="progress" id="progress">
-                <p id="progressText">Calculating solution...</p>
-                <p id="progressState">States tried: <span id="stateCount">0</span></p>
-            </div>
-            
-            <div class="solution" id="solution">
-                <h3 id="solutionTitle">Solution:</h3>
-                <div id="solutionSteps"></div>
-            </div>
-            
         </div>
         
-        <div class="right-sidebar">
-            <div class="stats" id="stats" style="display:none;">
-                <p id="statsContent">Steps: 0 | Time: 0ms</p>
+        <div class="content-row">
+            <div class="left-sidebar">
+                <div class="color-palette" id="colorPalette">
+                    <!-- 颜色调色板将在这里生成 -->
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="board" id="board">
+                    <!-- 游戏板将在这里生成 -->
+                </div>
+                
+                <div class="progress" id="progress">
+                    <p id="progressText">Calculating solution...</p>
+                    <p id="progressState">States tried: <span id="stateCount">0</span></p>
+                </div>
+                
+                <div class="solution" id="solution">
+                    <h3 id="solutionTitle">Solution:</h3>
+                    <div id="solutionSteps"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -452,17 +486,6 @@
             document.getElementById('solutionTitle').textContent = t.solutionTitle;
             
             
-            // 更新统计信息（如果已显示）
-            const statsContent = document.getElementById('statsContent');
-            if (statsContent && statsContent.textContent.indexOf('解法步数') !== -1 || statsContent.textContent.indexOf('Steps:') !== -1) {
-                // 如果显示的是步数和时间，需要重新格式化
-                const match = statsContent.textContent.match(/(\d+).*?(\d+)/);
-                if (match) {
-                    statsContent.textContent = `${t.statsSteps} ${match[1]} | ${t.statsTime} ${match[2]}ms`;
-                } else if (statsContent.textContent.indexOf('未找到') !== -1 || statsContent.textContent.indexOf('No solution') !== -1) {
-                    statsContent.textContent = t.statsNoSolution;
-                }
-            }
             
             // 重新渲染board以更新"添加试管"按钮文本
             renderBoard();
@@ -533,21 +556,14 @@
         }
         
         function updateStatsDisplay({ steps = 0, time = 0, message = null } = {}) {
-            const statsEl = document.getElementById('stats');
-            const statsContent = document.getElementById('statsContent');
             const t = translations[currentLang];
 
-            if (!statsEl || !statsContent) {
-                return;
-            }
-
             if (message !== null) {
-                statsContent.textContent = message;
+                showToast(message);
             } else {
-                statsContent.textContent = `${t.statsSteps} ${steps} | ${t.statsTime} ${time}ms`;
+                const messageText = `${t.statsSteps} ${steps} | ${t.statsTime} ${time}ms`;
+                showToast(messageText);
             }
-
-            statsEl.style.display = 'block';
         }
 
         // 颜色名称到索引的映射
@@ -765,46 +781,6 @@
             }, 0);
         }
         
-        // 计算并应用自动缩放
-        function applyAutoScale() {
-            const boardEl = document.getElementById('board');
-            if (!boardEl || boardEl.children.length === 0) return;
-            
-            // 计算可用视口高度
-            const viewportHeight = window.innerHeight;
-            
-            // 计算固定元素的高度（按钮区、标题等，颜色区在左侧不计算）
-            const controls = document.querySelector('.controls');
-            const h1 = document.querySelector('h1');
-            const mainContent = document.querySelector('.main-content');
-            
-            let fixedElementsHeight = 0;
-            if (controls) fixedElementsHeight += controls.offsetHeight || 50;
-            if (h1) fixedElementsHeight += h1.offsetHeight || 30;
-            fixedElementsHeight += 60; // 额外的边距和padding
-            
-            // 使用main-content的高度而不是viewport高度
-            const availableHeight = (mainContent ? mainContent.clientHeight : viewportHeight) - fixedElementsHeight;
-            
-            // 等待DOM完全渲染后计算实际高度
-            setTimeout(() => {
-                // 获取board的实际高度（包括所有行）
-                const totalHeight = boardEl.scrollHeight || boardEl.offsetHeight;
-                
-                // 如果需要的空间大于可用空间，计算缩放比例
-                if (totalHeight > availableHeight && availableHeight > 0) {
-                    // 留出一些余量，确保底部内容可见
-                    const scale = Math.min(0.95, Math.max(0.25, (availableHeight - 20) / totalHeight));
-                    boardEl.style.transform = `scale(${scale})`;
-                    boardEl.style.transformOrigin = 'top center';
-                    boardEl.style.marginBottom = '0';
-                } else {
-                    boardEl.style.transform = '';
-                    boardEl.style.transformOrigin = '';
-                    boardEl.style.marginBottom = '0';
-                }
-            }, 200);
-        }
         
         // 渲染游戏板 - 固定3行布局
         function renderBoard() {
@@ -837,7 +813,6 @@
                     
                     tubeEl.innerHTML = `
                         <div class="tube-header">
-                            <span>${i + 1}</span>
                             <button class="delete-btn" onclick="deleteTube(${i})">×</button>
                         </div>
                         <div class="tube-content">
@@ -851,7 +826,7 @@
                 // 添加增加试管按钮到每行末尾
                 const addBtn = document.createElement('button');
                 addBtn.className = 'add-tube-btn';
-                addBtn.textContent = translations[currentLang].btnAddTube;
+                addBtn.textContent = '+';
                 addBtn.onclick = () => addTubeToRow(row);
                 rowEl.appendChild(addBtn);
                 
@@ -886,7 +861,6 @@
                             
                             tubeEl.innerHTML = `
                                 <div class="tube-header">
-                                    <span>${i + 1}</span>
                                     <button class="delete-btn" onclick="deleteTube(${i})">×</button>
                                 </div>
                                 <div class="tube-content">
@@ -902,10 +876,6 @@
                 }
             }
             
-            // 应用自动缩放（使用setTimeout确保DOM已渲染）
-            setTimeout(() => {
-                applyAutoScale();
-            }, 100);
         }
         
         // 渲染试管内容
@@ -1635,10 +1605,9 @@
             const validation = validatePuzzle();
             if (!validation.valid) {
                 showToast(validation.message);
-                document.getElementById('solution').style.display = 'none';
-                document.getElementById('progress').style.display = 'none';
-                document.getElementById('stats').style.display = 'none';
-                return;
+            document.getElementById('solution').style.display = 'none';
+            document.getElementById('progress').style.display = 'none';
+            return;
             }
             
             // 保存原始状态
@@ -1757,12 +1726,6 @@
             document.getElementById('prevStepBtn').disabled = true;
             document.getElementById('nextStepBtn').disabled = true;
             
-            // 监听窗口大小变化，自动调整缩放
-            window.addEventListener('resize', () => {
-                setTimeout(() => {
-                    applyAutoScale();
-                }, 100);
-            });
         };
     </script>
 </body>
