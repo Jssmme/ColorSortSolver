@@ -262,10 +262,6 @@
             position: relative;
             box-sizing: border-box;
         }
-        .color-btn .color-name {
-            font-size: 12px;
-            font-weight: bold;
-        }
         .color-btn .color-count {
             font-size: 10px;
             margin-top: 2px;
@@ -383,7 +379,6 @@
                 
                 <div class="solution" id="solution">
                     <h3 id="solutionTitle">Solution:</h3>
-                    <div id="solutionSteps"></div>
                 </div>
             </div>
         </div>
@@ -677,7 +672,8 @@
             const counts = new Array(colors.length).fill(0);
             tubes.forEach(tube => {
                 tube.forEach(colorIndex => {
-                    if (colorIndex !== undefined && colorIndex >= 0 && colorIndex < colors.length) {
+                    // 只统计有效的颜色索引，忽略null、undefined和无效值
+                    if (colorIndex !== undefined && colorIndex !== null && colorIndex >= 0 && colorIndex < colors.length) {
                         counts[colorIndex]++;
                     }
                 });
@@ -740,6 +736,27 @@
                 
                 paletteEl.appendChild(colorBtn);
             });
+            
+            // 添加"x"清空按钮
+            const clearBtn = document.createElement('div');
+            clearBtn.className = 'color-btn';
+            clearBtn.style.backgroundColor = '#cccccc';
+            clearBtn.style.border = '2px solid #333';
+            clearBtn.dataset.index = 'clear'; // 使用特殊标识
+            clearBtn.style.display = 'flex';
+            clearBtn.style.alignItems = 'center';
+            clearBtn.style.justifyContent = 'center';
+            clearBtn.style.fontSize = '20px';
+            clearBtn.style.fontWeight = 'bold';
+            clearBtn.style.color = '#333';
+            clearBtn.textContent = '×';
+            clearBtn.title = '清空此格';
+            
+            clearBtn.addEventListener('click', () => {
+                selectColor('clear');
+            });
+            
+            paletteEl.appendChild(clearBtn);
         }
         
         // 选择颜色
@@ -753,8 +770,8 @@
             
             // 更新UI显示
             document.querySelectorAll('.color-btn').forEach((btn) => {
-                const btnIndex = parseInt(btn.dataset.index);
-                if (btnIndex === colorIndex) {
+                const btnIndex = btn.dataset.index;
+                if (btnIndex === String(colorIndex) || (btnIndex === 'clear' && colorIndex === 'clear')) {
                     btn.classList.add('selected-color');
                 } else {
                     btn.classList.remove('selected-color');
@@ -773,8 +790,8 @@
             // 恢复选中状态（因为重新渲染后选中状态会丢失）
             setTimeout(() => {
                 document.querySelectorAll('.color-btn').forEach((btn) => {
-                    const btnIndex = parseInt(btn.dataset.index);
-                    if (btnIndex === colorIndex) {
+                    const btnIndex = btn.dataset.index;
+                    if (btnIndex === String(colorIndex) || (btnIndex === 'clear' && colorIndex === 'clear')) {
                         btn.classList.add('selected-color');
                     }
                 });
@@ -943,32 +960,45 @@
             // position=0是最上面（显示在最上面），对应数组索引3（顶部）
             const arrayIndex = 3 - position;
             
-            // 如果指定位置已有颜色，替换它
-            if (arrayIndex < tubes[tubeIndex].length && tubes[tubeIndex][arrayIndex] !== undefined) {
-                tubes[tubeIndex][arrayIndex] = selectedColorIndex;
+            // 处理清空操作（x选项）
+            if (selectedColorIndex === 'clear') {
+                // 如果指定位置有颜色，清空它（设置为null，不删除元素，保持其他位置不变）
+                if (arrayIndex < tubes[tubeIndex].length && tubes[tubeIndex][arrayIndex] !== undefined && tubes[tubeIndex][arrayIndex] !== null) {
+                    // 将该位置设置为null，而不是删除元素
+                    tubes[tubeIndex][arrayIndex] = null;
+                    // 只清理数组末尾连续的null值（不影响中间位置）
+                    while (tubes[tubeIndex].length > 0 && tubes[tubeIndex][tubes[tubeIndex].length - 1] === null) {
+                        tubes[tubeIndex].pop();
+                    }
+                }
             } else {
-                // 如果位置为空，填充到用户选择的位置
-                const currentLength = tubes[tubeIndex].length;
-                
-                if (arrayIndex === currentLength) {
-                    // 如果选择的位置正好是第一个空位（从底部开始），直接添加
-                    tubes[tubeIndex].push(selectedColorIndex);
-                } else if (arrayIndex > currentLength) {
-                    // 如果选择的位置在已有颜色之上，需要填充到指定位置
-                    // 创建一个新数组，在指定位置填充颜色，中间用null占位
-                    const newArray = [];
-                    // 先复制已有的颜色
-                    for (let i = 0; i < currentLength; i++) {
-                        newArray.push(tubes[tubeIndex][i]);
+                // 如果指定位置已有颜色，替换它
+                if (arrayIndex < tubes[tubeIndex].length && tubes[tubeIndex][arrayIndex] !== undefined) {
+                    tubes[tubeIndex][arrayIndex] = selectedColorIndex;
+                } else {
+                    // 如果位置为空，填充到用户选择的位置
+                    const currentLength = tubes[tubeIndex].length;
+                    
+                    if (arrayIndex === currentLength) {
+                        // 如果选择的位置正好是第一个空位（从底部开始），直接添加
+                        tubes[tubeIndex].push(selectedColorIndex);
+                    } else if (arrayIndex > currentLength) {
+                        // 如果选择的位置在已有颜色之上，需要填充到指定位置
+                        // 创建一个新数组，在指定位置填充颜色，中间用null占位
+                        const newArray = [];
+                        // 先复制已有的颜色
+                        for (let i = 0; i < currentLength; i++) {
+                            newArray.push(tubes[tubeIndex][i]);
+                        }
+                        // 填充null到指定位置之前
+                        for (let i = currentLength; i < arrayIndex; i++) {
+                            newArray.push(null);
+                        }
+                        // 在指定位置填充颜色
+                        newArray.push(selectedColorIndex);
+                        // 更新数组（保留null，渲染时会正确处理）
+                        tubes[tubeIndex] = newArray;
                     }
-                    // 填充null到指定位置之前
-                    for (let i = currentLength; i < arrayIndex; i++) {
-                        newArray.push(null);
-                    }
-                    // 在指定位置填充颜色
-                    newArray.push(selectedColorIndex);
-                    // 更新数组（保留null，渲染时会正确处理）
-                    tubes[tubeIndex] = newArray;
                 }
             }
             
@@ -1006,6 +1036,9 @@
             
             // 重新渲染以显示新的选中状态
             renderBoard();
+            
+            // 自动保存游戏（静默保存，不显示提示）
+            exportPuzzle(false);
         }
         
         // 添加试管到指定行
@@ -1182,7 +1215,7 @@
         }
         
         // 导出当前题目（保存到cookie）
-        function exportPuzzle() {
+        function exportPuzzle(showMessage = true) {
             // 保存当前题目数据到cookie
             const puzzleData = {
                 tubes: tubes,
@@ -1192,10 +1225,14 @@
             try {
                 const dataString = JSON.stringify(puzzleData);
                 setCookie('colorSortPuzzle', dataString);
-                const t = translations[currentLang];
-                showToast(currentLang === 'zh' ? '题目已保存到Cookie！' : 'Puzzle saved to Cookie!');
+                // 只在需要时显示提示
+                if (showMessage) {
+                    const t = translations[currentLang];
+                    showToast(currentLang === 'zh' ? '题目已保存到Cookie！' : 'Puzzle saved to Cookie!');
+                }
             } catch (err) {
                 console.error('保存失败:', err);
+                // 错误时总是显示提示
                 const t = translations[currentLang];
                 showToast(currentLang === 'zh' ? '保存失败，请重试' : 'Save failed, please try again');
             }
@@ -1273,7 +1310,6 @@
         function validatePuzzle() {
             // 统计空试管数量
             let emptyTubes = 0;
-            let fullTubes = 0;
             let incompleteTubes = 0;
             
             // 统计每个颜色的数量
@@ -1285,7 +1321,6 @@
                 if (tube.length === 0) {
                     emptyTubes++;
                 } else if (tube.length === 4) {
-                    fullTubes++;
                     // 统计颜色
                     tube.forEach(colorIndex => {
                         if (colorIndex >= 0 && colorIndex < colors.length) {
@@ -1322,10 +1357,8 @@
             
             // 检查每个颜色的数量（只检查实际使用的颜色）
             const invalidColors = [];
-            const usedColors = [];
             for (let i = 0; i < colorCounts.length; i++) {
                 if (colorCounts[i] > 0) {
-                    usedColors.push(i);
                     if (colorCounts[i] !== 4) {
                         invalidColors.push({
                             name: colors[i].name,
@@ -1364,40 +1397,6 @@
                 this.max_size = 4;
                 this.completed = false;
                 this.TColor = null;
-                this.historyStates = new Set(); // 记录该试管曾经处于的状态（用于剪枝）
-            }
-            
-            // 获取当前状态的字符串表示
-            getStateKey() {
-                if (this.is_empty()) {
-                    return ''; // 空试管状态不参与检查
-                }
-                return this.elements.join(',');
-            }
-            
-            // 检查当前状态是否在历史中（空试管状态除外）
-            hasSeenCurrentState() {
-                if (this.is_empty()) {
-                    return false; // 空试管状态不参与检查
-                }
-                const currentState = this.getStateKey();
-                return this.historyStates.has(currentState);
-            }
-            
-            // 将当前状态添加到历史中（空试管状态除外）
-            recordCurrentState() {
-                if (!this.is_empty()) {
-                    const currentState = this.getStateKey();
-                    this.historyStates.add(currentState);
-                }
-            }
-            
-            // 从历史中移除当前状态（空试管状态除外）
-            removeCurrentState() {
-                if (!this.is_empty()) {
-                    const currentState = this.getStateKey();
-                    this.historyStates.delete(currentState);
-                }
             }
             
             is_full() {
@@ -1485,8 +1484,6 @@
                 container.elements = [...tubes[i]];
                 container.top_color();
                 container.is_completed();
-                // 记录初始状态到历史中（空试管状态除外）
-                container.recordCurrentState();
                 containers.push(container);
             }
             return containers;
@@ -1500,7 +1497,7 @@
         }
         
         // 深度优先搜索求解（基于Python算法）
-        function autoSolve(containers, history, visitedStates, recursionCount = 0, onStepCallback = null) {
+        function autoSolve(containers, visitedStates, recursionCount = 0, onStepCallback = null) {
             recursionCount++;
             
             // 检查递归深度限制
@@ -1557,17 +1554,13 @@
                                 continue; // 跳过这次移动
                             }
                             
-                            // 记录移动信息
-                            const moveKey = `${fromContainer.idx}>${toContainer.idx}(${moveCount})`;
-                            
                             // 递归调用
-                            if (autoSolve(containers, history + moveKey + ',', visitedStates, recursionCount, onStepCallback)) {
-                                // 找到解决方案，将移动记录添加到history
+                            if (autoSolve(containers, visitedStates, recursionCount, onStepCallback)) {
+                                // 找到解决方案，将移动记录添加到solutionSteps
                                 solutionSteps.unshift({
                                     from: fromContainer.idx - 1,
                                     to: toContainer.idx - 1,
-                                    count: moveCount,
-                                    moveKey: moveKey
+                                    count: moveCount
                                 });
                                 return true;
                             }
@@ -1640,7 +1633,7 @@
             // 开始求解（使用setTimeout避免阻塞UI）
             setTimeout(() => {
                 const visitedStates = new Set();
-                const found = autoSolve(containers, '', visitedStates, 0, onStepCallback);
+                const found = autoSolve(containers, visitedStates, 0, onStepCallback);
                 
                 if (found) {
                     // 恢复原始状态
@@ -1730,4 +1723,3 @@
     </script>
 </body>
 </html>
-
